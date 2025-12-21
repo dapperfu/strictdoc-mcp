@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  strictdoc-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: strictdoc-mcp:latest
+    container_name: strictdoc-mcp
+    stdin_open: true
+    tty: true
+    environment:
+      # Configuration via environment variables
+      # STRICTDOC_MCP_LOG_LEVEL: INFO
+      # STRICTDOC_MCP_CLI_PATH: /usr/local/bin/strictdoc
+      # STRICTDOC_MCP_DEFAULT_OUTPUT_DIR: /app/output
+    # MCP servers communicate via stdio, so we keep stdin/stdout open
+    # No ports needed as MCP uses stdio protocol
+
