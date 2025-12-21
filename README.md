@@ -318,7 +318,7 @@ strictdoc-mcp/
 
 ## License
 
-[Add license information]
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
