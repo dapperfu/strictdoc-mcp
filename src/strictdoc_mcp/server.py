@@ -404,6 +404,11 @@ async def main() -> None:
         )
 
 
+def cli_main() -> None:
+    """Synchronous entry point for console script."""
+    asyncio.run(main())
+
+
 if __name__ == "__main__":
     asyncio.run(main())
 

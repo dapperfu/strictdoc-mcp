@@ -24,10 +24,7 @@ dev = [
 ]
 
 [project.scripts]
-strictdoc-mcp = "strictdoc_mcp.server:main"
-
-[project.entry-points."console_scripts"]
-strictdoc-mcp = "strictdoc_mcp.server:main"
+strictdoc-mcp = "strictdoc_mcp.server:cli_main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/strictdoc_mcp"]

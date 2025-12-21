@@ -1,6 +1,6 @@
 """Module entry point for StrictDoc MCP Server.
 
-This allows running the server with: python -m strictdoc_mcp.server
+This allows running the server with: python -m strictdoc_mcp
 """
 
 import asyncio
