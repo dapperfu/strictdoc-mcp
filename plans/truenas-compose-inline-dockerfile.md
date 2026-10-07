@@ -10,10 +10,10 @@ todos:
     status: completed
   - id: write-compose
     content: "Create docker-compose-TrueNAS.yml: inline multi-stage Dockerfile (ADD main.zip, uv venvs for strictdoc-mcp and mcp-proxy, smoke tests, SOURCE_COMMIT), mcp-proxy entrypoint on 20423, /data bind mount, healthcheck, pull_policy build, restart, hardening, named network"
-    status: pending
+    status: completed
   - id: verify-compose
     content: "Verify locally: compose config, build from GitHub zip, run with temp data dir, wait healthy, HTTP initialize + tools/list + strictdoc_version call, check SOURCE_COMMIT and cached rebuild, tear down; then commit and push"
-    status: pending
+    status: completed
   - id: dockerignore
     content: Add docker-compose-TrueNAS.yml to the Docker files section of .dockerignore; commit and push
     status: pending

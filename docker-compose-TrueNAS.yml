@@ -1,0 +1,88 @@
+# StrictDoc MCP server for TrueNAS SCALE, built from the public GitHub archive,
+# so the NAS needs no checkout of this repository.
+#
+# Install: Apps > Discover Apps > three-dot menu > Install via YAML, then paste
+# this file. TrueNAS does not read .env files, so edit the ${VAR:-default}
+# defaults below in place:
+#   STRICTDOC_MCP_DATA_PATH  Existing dataset mounted at /data, writable by APP_UID:APP_GID
+#   STRICTDOC_MCP_PORT       Host port; MCP clients connect to http://<nas>:<port>/mcp
+#   STRICTDOC_MCP_LOG_LEVEL  DEBUG, INFO, WARNING, ERROR or CRITICAL
+#   STRICTDOC_MCP_ZIP_URL    Source archive; any branch, tag or commit zip from GitHub
+#   MCP_PROXY_VERSION        mcp-proxy release that bridges HTTP to the stdio server
+#   APP_UID, APP_GID         Container user; TrueNAS apps run as 568:568
+#
+# pull_policy: build rebuilds on every app start or redeploy, so GitHub must be
+# reachable then. The HTTP endpoint has no authentication.
+
+services:
+  strictdoc-mcp:
+    build:
+      args:
+        STRICTDOC_MCP_ZIP_URL: ${STRICTDOC_MCP_ZIP_URL:-https://github.com/dapperfu/strictdoc-mcp/archive/refs/heads/main.zip}
+        MCP_PROXY_VERSION: ${MCP_PROXY_VERSION:-0.12.0}
+        APP_UID: ${APP_UID:-568}
+        APP_GID: ${APP_GID:-568}
+      dockerfile_inline: |
+        FROM python:3.11-slim AS builder
+        COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /usr/local/bin/uv
+        ENV UV_PYTHON_DOWNLOADS=never UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_NO_CACHE=1
+        ARG MCP_PROXY_VERSION
+        RUN uv venv /app/venv_mcp-proxy
+        # mcp-proxy 0.12.0 uses the mcp 1.x handler API
+        RUN uv pip install --python /app/venv_mcp-proxy/bin/python "mcp-proxy==$${MCP_PROXY_VERSION}" "mcp<2"
+        RUN /app/venv_mcp-proxy/bin/mcp-proxy --version
+        ARG STRICTDOC_MCP_ZIP_URL
+        ADD $${STRICTDOC_MCP_ZIP_URL} /tmp/strictdoc-mcp.zip
+        RUN python -m zipfile -e /tmp/strictdoc-mcp.zip /tmp/src
+        RUN python -c "import zipfile; print(zipfile.ZipFile('/tmp/strictdoc-mcp.zip').comment.decode())" > /app/SOURCE_COMMIT
+        RUN uv venv /app/venv_strictdoc-mcp
+        RUN uv pip install --python /app/venv_strictdoc-mcp/bin/python /tmp/src/*/
+        RUN /app/venv_strictdoc-mcp/bin/python -c "import strictdoc_mcp.server"
+
+        FROM python:3.11-slim
+        ARG APP_UID
+        ARG APP_GID
+        RUN groupadd --gid "$${APP_GID}" appuser
+        RUN useradd --uid "$${APP_UID}" --gid "$${APP_GID}" --create-home appuser
+        COPY --from=builder /app /app
+        ENV PATH="/app/venv_strictdoc-mcp/bin:/app/venv_mcp-proxy/bin:$${PATH}"
+        WORKDIR /data
+        USER appuser
+        EXPOSE 20423
+        ENTRYPOINT ["mcp-proxy", "--host", "0.0.0.0", "--port", "20423", "--pass-environment", "--", "strictdoc-mcp"]
+    image: strictdoc-mcp:main
+    pull_policy: build
+    container_name: strictdoc-mcp
+    restart: unless-stopped
+    ports:
+      - "${STRICTDOC_MCP_PORT:-20423}:20423"
+    environment:
+      STRICTDOC_MCP_LOG_LEVEL: ${STRICTDOC_MCP_LOG_LEVEL:-INFO}
+      STRICTDOC_MCP_DEFAULT_OUTPUT_DIR: /data/output
+    volumes:
+      - type: bind
+        source: ${STRICTDOC_MCP_DATA_PATH:-/mnt/tank/strictdoc}
+        target: /data
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - 'import subprocess, urllib.request, strictdoc_mcp.server; subprocess.run(["strictdoc", "version"], check=True, capture_output=True); urllib.request.urlopen("http://127.0.0.1:20423/status", timeout=5)'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - strictdoc-mcp-http
+
+networks:
+  strictdoc-mcp-http:
+    name: strictdoc-mcp-http
+    driver: bridge
