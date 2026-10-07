@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: push-mcp2
     content: Validate the uncommitted MCP 2.x migration via existing Dockerfile build + stdio initialize/tools-list handshake; commit pyproject.toml, server.py, verify_server.py together with plan checkoff; push to origin/main
-    status: pending
+    status: completed
   - id: write-compose
     content: "Create docker-compose-TrueNAS.yml: inline multi-stage Dockerfile (ADD main.zip, uv venvs for strictdoc-mcp and mcp-proxy, smoke tests, SOURCE_COMMIT), mcp-proxy entrypoint on 20423, /data bind mount, healthcheck, pull_policy build, restart, hardening, named network"
     status: pending

@@ -10,9 +10,16 @@ import logging
 import sys
 from typing import Any, Dict, List, Optional
 
-from mcp.server import Server
+from mcp.server import Server, ServerRequestContext
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import (
+    CallToolRequestParams,
+    CallToolResult,
+    ListToolsResult,
+    PaginatedRequestParams,
+    TextContent,
+    Tool,
+)
 
 from .config import get_config
 from .tools import export, import_tools, manage, server as server_tool, utils
@@ -25,11 +32,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create MCP server instance
-app = Server("strictdoc-mcp")
 
-
-@app.list_tools()
 async def list_tools() -> List[Tool]:
     """List all available tools.
 
@@ -258,7 +261,6 @@ async def list_tools() -> List[Tool]:
     ]
 
 
-@app.call_tool()
 async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
     """Handle tool calls.
 
@@ -389,6 +391,31 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
         error_msg = f"Tool execution failed: {str(e)}"
         logger.error(error_msg, exc_info=True)
         return [TextContent(type="text", text=error_msg)]
+
+
+async def handle_list_tools(
+    _ctx: ServerRequestContext[Any],
+    _params: Optional[PaginatedRequestParams],
+) -> ListToolsResult:
+    """MCP 2.x tools/list handler."""
+    return ListToolsResult(tools=await list_tools())
+
+
+async def handle_call_tool(
+    _ctx: ServerRequestContext[Any],
+    params: CallToolRequestParams,
+) -> CallToolResult:
+    """MCP 2.x tools/call handler."""
+    content = await call_tool(params.name, params.arguments or {})
+    return CallToolResult(content=content)
+
+
+# Create MCP server instance (mcp>=2 uses constructor handlers, not decorators)
+app = Server(
+    "strictdoc-mcp",
+    on_list_tools=handle_list_tools,
+    on_call_tool=handle_call_tool,
+)
 
 
 async def main() -> None:

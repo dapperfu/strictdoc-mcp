@@ -9,7 +9,7 @@ description = "MCP server for StrictDoc tooling"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp",
+    "mcp>=2",
     "strictdoc",
     "tomli; python_version < '3.11'",
     "tomli-w; python_version < '3.11'",

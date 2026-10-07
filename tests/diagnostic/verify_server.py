@@ -30,23 +30,11 @@ def verify_tool_registration() -> bool:
     """
     print("Verifying tool registration...")
 
-    # Check if list_tools handler is registered
-    if not hasattr(app, "request_handlers"):
-        print("❌ Server doesn't have request_handlers attribute")
+    handler = app.get_request_handler("tools/list")
+    if handler is None:
+        print("❌ tools/list handler is not registered")
         return False
-
-    # Import types to check handler registration
-    try:
-        from mcp.types import ListToolsRequest
-
-        if ListToolsRequest not in app.request_handlers:
-            print("❌ ListToolsRequest handler not registered")
-            return False
-        print("✓ ListToolsRequest handler is registered")
-    except ImportError as e:
-        print(f"⚠️  Could not import MCP types: {e}")
-        return False
-
+    print("✓ tools/list handler is registered")
     return True
 
 
@@ -136,11 +124,11 @@ async def verify_list_tools() -> bool:
         # Verify tool schemas
         schema_errors = []
         for tool in tools:
-            if not hasattr(tool, "inputSchema"):
+            if not hasattr(tool, "input_schema"):
                 schema_errors.append(f"Tool '{tool.name}' missing inputSchema")
                 continue
 
-            schema = tool.inputSchema
+            schema = tool.input_schema
             if not isinstance(schema, dict):
                 schema_errors.append(f"Tool '{tool.name}' inputSchema is not a dict")
                 continue
