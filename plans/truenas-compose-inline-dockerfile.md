@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: dockerignore
     content: Add docker-compose-TrueNAS.yml to the Docker files section of .dockerignore; commit and push
-    status: pending
+    status: completed
 isProject: false
 ---
 

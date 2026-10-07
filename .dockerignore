@@ -42,6 +42,7 @@ docs/
 Dockerfile
 .dockerignore
 docker-compose.yml
+docker-compose-TrueNAS.yml
 
 # Other
 .DS_Store
