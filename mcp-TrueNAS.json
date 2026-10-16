@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "strictdoc-mcp-truenas": {
+      "url": "http://NAS_IP:20423/mcp"
+    }
+  }
+}

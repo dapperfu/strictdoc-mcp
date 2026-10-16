@@ -58,7 +58,7 @@ python -m strictdoc_mcp
 strictdoc-mcp
 ```
 
-The server communicates via stdio using the MCP protocol.
+The server communicates via stdio using the MCP protocol. The Docker Compose files below serve that process over HTTP on port 20423.
 
 ### Configuration
 
@@ -170,6 +170,35 @@ If you're using `uv` as your package manager, you can configure the server to us
   }
 }
 ```
+
+#### Open port (Docker)
+
+`docker-compose.yml` builds this checkout. `docker-compose-TrueNAS.yml` builds the same runtime from the public GitHub zip, for a machine that does not have the repository. Both listen on container port 20423 and publish it on the host. The endpoint has no authentication, so anyone who can reach the port can call the tools.
+
+1. Start the container. Documents and exports stay in the Docker volume `strictdoc-mcp-data`, mounted at `/data`. The default export directory is `/data/output`. `STRICTDOC_MCP_PORT` changes the host port. The container port stays 20423.
+
+```bash
+docker compose up -d --build
+```
+
+On TrueNAS, paste `docker-compose-TrueNAS.yml` into Apps > Discover Apps > three-dot menu > Install via YAML. That file uses the same internal volume.
+
+2. Open the host port in the firewall when the MCP client is on another machine.
+3. Add the server in the client with a `url`. Replace the host with the machine running the container. Use `127.0.0.1` when the client is on that same machine. For TrueNAS, use the NAS IP address. The host has to be present: `http://:20423/mcp` is an invalid URL, and the client stops with `Invalid URL` before it connects.
+
+```json
+{
+  "mcpServers": {
+    "strictdoc-mcp": {
+      "url": "http://127.0.0.1:20423/mcp"
+    }
+  }
+}
+```
+
+`mcp-TrueNAS.json` is the same entry with `NAS_IP` in place of the address. If `STRICTDOC_MCP_PORT` is not 20423, use that port in the URL.
+
+Cursor reads this as a streamable HTTP connection. Other clients that support that transport use the same URL.
 
 #### Direct Installation Script
 
@@ -313,6 +342,10 @@ strictdoc-mcp/
 │   └── integration/          # Integration tests
 ├── pyproject.toml             # Project configuration
 ├── Makefile                   # Build targets
+├── Dockerfile                 # Local image, HTTP on port 20423
+├── docker-compose.yml         # Build this checkout
+├── docker-compose-TrueNAS.yml # Build the public GitHub zip
+├── mcp-TrueNAS.json           # MCP client entry for the open port
 └── README.md                  # This file
 ```
 
