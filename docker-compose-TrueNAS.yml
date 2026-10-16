@@ -4,7 +4,6 @@
 # Install: Apps > Discover Apps > three-dot menu > Install via YAML, then paste
 # this file. TrueNAS does not read .env files, so edit the ${VAR:-default}
 # defaults below in place:
-#   STRICTDOC_MCP_DATA_PATH  Existing dataset mounted at /data, writable by APP_UID:APP_GID
 #   STRICTDOC_MCP_PORT       Host port; MCP clients connect to http://<nas>:<port>/mcp
 #   STRICTDOC_MCP_LOG_LEVEL  DEBUG, INFO, WARNING, ERROR or CRITICAL
 #   STRICTDOC_MCP_ZIP_URL    Source archive; any branch, tag or commit zip from GitHub
@@ -46,7 +45,10 @@ services:
         RUN useradd --uid "$${APP_UID}" --gid "$${APP_GID}" --create-home appuser
         COPY --from=builder /app /app
         ENV PATH="/app/venv_strictdoc-mcp/bin:/app/venv_mcp-proxy/bin:$${PATH}"
+        RUN mkdir -p /data
+        RUN chown appuser:appuser /data
         WORKDIR /data
+        VOLUME ["/data"]
         USER appuser
         EXPOSE 20423
         ENTRYPOINT ["mcp-proxy", "--host", "0.0.0.0", "--port", "20423", "--pass-environment", "--", "strictdoc-mcp"]
@@ -60,11 +62,9 @@ services:
       STRICTDOC_MCP_LOG_LEVEL: ${STRICTDOC_MCP_LOG_LEVEL:-INFO}
       STRICTDOC_MCP_DEFAULT_OUTPUT_DIR: /data/output
     volumes:
-      - type: bind
-        source: ${STRICTDOC_MCP_DATA_PATH:-/mnt/tank/strictdoc}
+      - type: volume
+        source: strictdoc-mcp-data
         target: /data
-        bind:
-          create_host_path: false
     healthcheck:
       test:
         - CMD
@@ -86,3 +86,7 @@ networks:
   strictdoc-mcp-http:
     name: strictdoc-mcp-http
     driver: bridge
+
+volumes:
+  strictdoc-mcp-data:
+    name: strictdoc-mcp-data

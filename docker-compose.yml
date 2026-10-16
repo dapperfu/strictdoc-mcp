@@ -1,19 +1,61 @@
-version: '3.8'
+# StrictDoc MCP server built from this checkout.
+# Same runtime as docker-compose-TrueNAS.yml. That file downloads the public
+# GitHub zip; this one builds Dockerfile from the local tree.
+#
+# Set these in the environment, or edit the defaults in place:
+#   STRICTDOC_MCP_PORT       Host port. Clients use http://<host>:<port>/mcp
+#   STRICTDOC_MCP_LOG_LEVEL  DEBUG, INFO, WARNING, ERROR or CRITICAL
+#   MCP_PROXY_VERSION        mcp-proxy release that bridges HTTP to the stdio server
+#   APP_UID, APP_GID         Container user. Default 568:568 matches TrueNAS apps
+#   SOURCE_COMMIT            Recorded in /app/SOURCE_COMMIT
+#
+# The HTTP endpoint has no authentication.
 
 services:
   strictdoc-mcp:
     build:
       context: .
       dockerfile: Dockerfile
-    image: strictdoc-mcp:latest
+      args:
+        MCP_PROXY_VERSION: ${MCP_PROXY_VERSION:-0.12.0}
+        APP_UID: ${APP_UID:-568}
+        APP_GID: ${APP_GID:-568}
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-local}
+    image: strictdoc-mcp:local
+    pull_policy: build
     container_name: strictdoc-mcp
-    stdin_open: true
-    tty: true
+    restart: unless-stopped
+    ports:
+      - "${STRICTDOC_MCP_PORT:-20423}:20423"
     environment:
-      # Configuration via environment variables
-      # STRICTDOC_MCP_LOG_LEVEL: INFO
-      # STRICTDOC_MCP_CLI_PATH: /usr/local/bin/strictdoc
-      # STRICTDOC_MCP_DEFAULT_OUTPUT_DIR: /app/output
-    # MCP servers communicate via stdio, so we keep stdin/stdout open
-    # No ports needed as MCP uses stdio protocol
+      STRICTDOC_MCP_LOG_LEVEL: ${STRICTDOC_MCP_LOG_LEVEL:-INFO}
+      STRICTDOC_MCP_DEFAULT_OUTPUT_DIR: /data/output
+    volumes:
+      - type: volume
+        source: strictdoc-mcp-data
+        target: /data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - 'import subprocess, urllib.request, strictdoc_mcp.server; subprocess.run(["strictdoc", "version"], check=True, capture_output=True); urllib.request.urlopen("http://127.0.0.1:20423/status", timeout=5)'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - strictdoc-mcp-http
 
+networks:
+  strictdoc-mcp-http:
+    name: strictdoc-mcp-http
+    driver: bridge
+
+volumes:
+  strictdoc-mcp-data:
+    name: strictdoc-mcp-data
