@@ -21,6 +21,7 @@ from mcp.types import (
     Tool,
 )
 
+from . import __version__
 from .config import get_config
 from .tools import export, import_tools, manage, server as server_tool, utils
 
@@ -413,6 +414,7 @@ async def handle_call_tool(
 # Create MCP server instance (mcp>=2 uses constructor handlers, not decorators)
 app = Server(
     "strictdoc-mcp",
+    version=__version__,
     on_list_tools=handle_list_tools,
     on_call_tool=handle_call_tool,
 )
